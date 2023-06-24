@@ -47,9 +47,39 @@ const MainCallsPage = () => {
     console.log(meResponse);
   };
 
-  const handleArchiveCall = (call) => {
-    setArchivedCalls((prevArchivedCalls) => [...prevArchivedCalls, call]);
+
+  const handleArchiveCall = async (call) => {
+    try {
+      const response = await axios.put(
+        `https://frontend-test-api.aircall.io/calls/${call.id}/archive`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+  
+      // Update the archived status of the call
+      const updatedCall = { ...call, is_archived: true };
+  
+      // Find the index of the call in the data array
+      const callIndex = data.findIndex((c) => c.id === call.id);
+  
+      // Create a new data array with the updated call
+      const updatedData = [...data];
+      updatedData[callIndex] = updatedCall;
+  
+      // Update the state variables
+      setData(updatedData);
+      setArchivedCalls((prevArchivedCalls) => [...prevArchivedCalls, updatedCall]);
+  
+      console.log('Archive call response:', response.data);
+    } catch (error) {
+      console.error('Error archiving call:', error.message);
+    }
   };
+  
 
   const toggleGrouped = () => {
     setGrouped((prevGrouped) => !prevGrouped);
@@ -83,7 +113,7 @@ const MainCallsPage = () => {
       <button onClick={toggleGrouped}>
         {grouped ? 'Ungroup Calls' : 'Group Calls'}
       </button>
-
+  
       {Object.entries(groupedCalls).map(([date, calls]) => (
         <div key={date}>
           {grouped && <h3>{date}</h3>}
@@ -95,15 +125,21 @@ const MainCallsPage = () => {
                 </div>
               </Link>
               <button onClick={() => handleArchiveCall(call)}>Archive</button>
+              <div>
+                {call.is_archived ? 'Archived' : 'Not Archived'}
+              </div>
             </div>
           ))}
         </div>
       ))}
-
+  
       <h2>Archived Calls:</h2>
       {archivedCalls.map((call) => (
         <div key={call.id}>
           {call.from} - {call.to} - this is id {call.id}
+          <div>
+            Archived
+          </div>
         </div>
       ))}
     </div>
@@ -111,3 +147,4 @@ const MainCallsPage = () => {
 };
 
 export default MainCallsPage;
+
