@@ -21,14 +21,10 @@ const Transition = React.forwardRef(function Transition(props, ref) {
 });
 
 export default function CallDetailPage({open, setOpen, id, token}) {
-
   const [callData, setCallData] = useState();
   const [isLoading, setIsLoading] = useState(true);
 
 
-  const handleClickOpen = () => {
-    setOpen(true);
-  };
 
   const handleClose = () => {
     setOpen(false);
@@ -61,9 +57,7 @@ export default function CallDetailPage({open, setOpen, id, token}) {
 
   return (
     <div>
-      <Button variant="outlined" onClick={handleClickOpen}>
-        Open full-screen dialog
-      </Button>
+
       <Dialog
         fullScreen
         open={open}

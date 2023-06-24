@@ -326,9 +326,11 @@ const handlePageChange = (pageNumber) => {
       {/* Call Detail Dialog */}
       {openDetail && (
         <CallDetailPage
-          callid={currentCallIdForDetail}
+        open={openDetail}
+        setOpen={setOpenDetail}
+          id={currentCallIdForDetail}
           token={currentToken}
-          handleClose={() => setOpenDetail(false)}
+
         />
       )}
     </div>
