@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import axios from "axios";
+import Stack from "@mui/material/Stack";
+
+
 import {
   Table,
   TableBody,
@@ -16,7 +19,12 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
+
 
 import CallDetailPage from "../CallDetailPage/CallDetailPage";
 
@@ -33,7 +41,9 @@ const MainCallsPage = () => {
   const [currentCallIdForDetail, setCurrentCallIdForDetail] = useState(null);
   const [currentToken, setCurrentToken] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const [itemsPerPage] = useState(5);
+  const [filterBy, setFilterBy] = useState("all"); 
+  
 
   useEffect(() => {
     const fetchData = async () => {
@@ -53,6 +63,7 @@ const MainCallsPage = () => {
             },
           }
         );
+        
 
         const responseData = meResponse.data;
         setData(responseData.nodes);
@@ -157,6 +168,7 @@ const MainCallsPage = () => {
       setDialogOpen(false);
 
       console.log("Submit note response:", response.data);
+ 
     } catch (error) {
       console.error("Error submitting note:", error.message);
     }
@@ -164,6 +176,10 @@ const MainCallsPage = () => {
 
   const toggleGrouped = () => {
     setGrouped((prevGrouped) => !prevGrouped);
+  };
+
+  const handleFilterChange = (event) => {
+    setFilterBy(event.target.value);
   };
 
   if (!data) {
@@ -175,10 +191,13 @@ const MainCallsPage = () => {
     return <div>Error: Invalid data structure</div>;
   }
 
+  // Filter calls based on archive status
+  const filteredCalls = filterBy === "archived" ? data.filter(call => call.is_archived) : (filterBy === "not_archived" ? data.filter(call => !call.is_archived) : data);
+
   // Group calls by date
   const groupedCalls = {};
   if (grouped) {
-    data.forEach((call) => {
+    filteredCalls.forEach((call) => {
       const date = new Date(call.created_at).toLocaleDateString();
       if (!groupedCalls[date]) {
         groupedCalls[date] = [];
@@ -186,9 +205,20 @@ const MainCallsPage = () => {
       groupedCalls[date].push(call);
     });
   } else {
-    groupedCalls["ungrouped"] = data;
+    groupedCalls["ungrouped"] = filteredCalls;
   }
-  
+
+  // Pagination state
+  const totalPages = Math.ceil(filteredCalls.length / itemsPerPage);
+
+  // Calculate current page data
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
   const handleDetailOpen = (callid, token) => {
     Promise.resolve()
       .then(() => {
@@ -203,106 +233,124 @@ const MainCallsPage = () => {
         setOpenDetail(true);
       });
   };
-// Pagination state
-
-
-const totalPages = Math.ceil(data.length / itemsPerPage);
-
-// Calculate current page data
-const indexOfLastItem = currentPage * itemsPerPage;
-const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-const currentItems = data.slice(indexOfFirstItem, indexOfLastItem);
-
-// Change page
-const handlePageChange = (pageNumber) => {
-  setCurrentPage(pageNumber);
-};
 
   return (
     <div>
       <Button variant="contained" onClick={toggleGrouped}>
         {grouped ? "Ungroup Calls" : "Group Calls"}
       </Button>
-  
+
+      <FormControl sx={{ m: 1, minWidth: 100 }}>
+
+  <Select
+    value={filterBy}
+    onChange={handleFilterChange}
+    displayEmpty
+    renderValue={() => 'Filter'}
+  >
+    <MenuItem value="all">All</MenuItem>
+    <MenuItem value="archived">Archived</MenuItem>
+    <MenuItem value="not_archived">Not Archived</MenuItem>
+  </Select>
+</FormControl>
+
+
       {Object.entries(groupedCalls).map(([date, calls]) => (
         <div key={date}>
           {grouped && <h3>{date}</h3>}
           <TableContainer component={Paper}>
             <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>From</TableCell>
-                  <TableCell>To</TableCell>
-                  <TableCell>Direction</TableCell>
-                  <TableCell>Duration</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Add Note</TableCell>
-                </TableRow>
-              </TableHead>
+            <TableHead>
+  <TableRow>
+    <TableCell><b>From</b></TableCell>
+    <TableCell><b>To</b></TableCell>
+    <TableCell><b>Direction</b></TableCell>
+    <TableCell><b>Duration</b></TableCell>
+    <TableCell><b>Status</b></TableCell>
+    <TableCell><b>Add Note</b></TableCell>
+  </TableRow>
+</TableHead>
+
               <TableBody>
-                {currentItems.map((call) => (
-                  <TableRow key={call.id} onClick={() => { handleDetailOpen(call.id, token) }}>
-                    <TableCell>{call.from}</TableCell>
-                    <TableCell>{call.to}</TableCell>
-                    <TableCell>{call.direction}</TableCell>
-                    <TableCell>{call.duration}</TableCell>
-                    <TableCell>
-                      {call.is_archived ? (
-                        <span
-                          style={{
-                            color: "gray",
-                            cursor: "pointer",
-                            textDecoration: "none",
-                          }}
-                          onClick={() => handleArchiveCall(call)}
-                        >
-                          Archived
-                        </span>
-                      ) : (
+                {calls
+                  .slice(indexOfFirstItem, indexOfLastItem)
+                  .map((call) => (
+                    <TableRow
+                      key={call.id}
+    
+                    >
+                      <TableCell                   onClick={() => {
+                        handleDetailOpen(call.id, token);
+                      }}>{call.from}</TableCell>
+                      <TableCell                   onClick={() => {
+                        handleDetailOpen(call.id, token);
+                      }}>{call.to}</TableCell>
+                      <TableCell                   onClick={() => {
+                        handleDetailOpen(call.id, token);
+                      }}>{call.direction}</TableCell>
+                      <TableCell                   onClick={() => {
+                        handleDetailOpen(call.id, token);
+                      }}>{call.duration}</TableCell>
+                      <TableCell>
+                        {call.is_archived ? (
+                          <span
+                            style={{
+                              color: "gray",
+                              cursor: "pointer",
+                              textDecoration: "none",
+                            }}
+                            onClick={() => handleArchiveCall(call)}
+                          >
+                            Archived
+                          </span>
+                        ) : (
+                          <Button
+                            style={{
+                              color: "white",
+                              cursor: "pointer",
+                              textDecoration: "none",
+                            }}
+                            variant="contained"
+                            onClick={() => handleArchiveCall(call)}
+                          >
+                            Not Archived
+                          </Button>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         <Button
-                          style={{
-                            color: "white",
-                            cursor: "pointer",
-                            textDecoration: "none",
-                          }}
                           variant="contained"
-                          onClick={() => handleArchiveCall(call)}
+                          onClick={() => handleAddNote(call.id)}
                         >
-                          Not Archived
+                          Add Note
                         </Button>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="contained"
-                        onClick={() => handleAddNote(call.id)}
-                      >
-                        Add Note
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           </TableContainer>
         </div>
       ))}
-  
+
       {/* Pagination */}
       <div>
-        {totalPages > 1 &&
-          Array.from({ length: totalPages }, (_, index) => (
-            <Button
-              key={index + 1}
-              variant="contained"
-              onClick={() => handlePageChange(index + 1)}
-              disabled={currentPage === index + 1}
-            >
-              {index + 1}
-            </Button>
-          ))}
+        {totalPages > 1 && !grouped && (
+          <Stack direction="row" spacing={2}>
+            {Array.from({ length: totalPages }, (_, index) => (
+              <Button
+                key={index + 1}
+                variant="contained"
+                onClick={() => handlePageChange(index + 1)}
+                disabled={currentPage === index + 1}
+              >
+                {index + 1}
+              </Button>
+            ))}
+          </Stack>
+        )}
       </div>
-  
+
       {/* Note Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
         <DialogTitle>Add Note</DialogTitle>
@@ -322,15 +370,14 @@ const handlePageChange = (pageNumber) => {
           <Button onClick={handleSubmitNote}>Add</Button>
         </DialogActions>
       </Dialog>
-  
+
       {/* Call Detail Dialog */}
       {openDetail && (
         <CallDetailPage
-        open={openDetail}
-        setOpen={setOpenDetail}
+          open={openDetail}
+          setOpen={setOpenDetail}
           id={currentCallIdForDetail}
           token={currentToken}
-
         />
       )}
     </div>
